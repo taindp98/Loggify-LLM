@@ -1,0 +1,8 @@
+black
+flake8
+isort
+-e .
+requests==2.32.2
+python-dotenv==1.0.0
+openai==1.38.0
+pymongo==4.8.0
