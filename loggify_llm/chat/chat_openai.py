@@ -12,7 +12,7 @@ from IPython.display import Image, display
 import time
 
 from loggify_llm.mongodb import MongoDBLogger
-from loggify_llm.chat.utils import unit_cost, unit_cost_batch_api
+from loggify_llm.chat.utils import unit_price
 
 load_dotenv()
 
@@ -30,18 +30,26 @@ class ChatOpenAI:
             Sends a request to the OpenAI API with the provided prompt and question, and returns the response.
     """
 
-    def __init__(self, llm_model: str = "gpt-3.5-turbo-instruct", collection_name=None):
+    def __init__(
+        self,
+        llm_model: str = "gpt-3.5-turbo-instruct",
+        safely_request: bool = False,
+        collection_name=None,
+    ):
         """
         Initializes the ChatOpenAI class with the specified language model.
 
         Args:
             llm_model (str): The language model to use. Default is "gpt-3.5-turbo-instruct".
+            safely_request (bool): Turn default quota per day.
+            collection_name (str): The name of log collection in DB.
         """
         super().__init__()
         open_api_key = os.environ.get("OPENAI_API_KEY")
         assert open_api_key, "OPENAI_API_KEY environment variable not set"
         self.client = OpenAI(api_key=open_api_key)
-        supported_llm_models = list(unit_cost.keys())
+        self.safely_request = safely_request
+        supported_llm_models = list(unit_price.keys())
         assert (
             llm_model in supported_llm_models
         ), f"`llm_model` should be in {supported_llm_models}"
@@ -82,7 +90,7 @@ class ChatOpenAI:
                 "content": user_prompt,
             },
         ]
-        allow_request = self.mongo_logger.is_within_daily_quota()
+        allow_request = self.mongo_logger.is_within_daily_quota() if self.safely_request else True
         assert (
             allow_request
         ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
@@ -110,7 +118,6 @@ class ChatOpenAI:
             "completion_tokens": response.usage.completion_tokens,
             "prompt_tokens": response.usage.prompt_tokens,
             "total_tokens": response.usage.total_tokens,
-            "batch_api": False,
         }
 
         try:
@@ -146,7 +153,6 @@ class ChatOpenAI:
         """
 
         # Creating an array of JSON tasks
-        self.mongo_logger.use_batch_api = True
         tasks = []
 
         for index, user_prompt in tqdm(enumerate(list_user_prompts)):
@@ -269,7 +275,6 @@ class ChatOpenAI:
                     "completion_tokens": response.usage.completion_tokens,
                     "prompt_tokens": response.usage.prompt_tokens,
                     "total_tokens": response.usage.total_tokens,
-                    "batch_api": True,
                 }
                 results.append(result)
         try:
@@ -304,12 +309,16 @@ class ChatOpenAIVision:
     def __init__(
         self,
         llm_model: str = "gpt-4-0125-preview",
+        safely_request: bool = False,
+        collection_name=None,
     ):
         """
         Initializes the ChatVision class with the specified language model.
 
         Args:
-            llm_model (str): The language model to use. Default is "gpt-4-0125-preview".
+            - llm_model (str): The language model to use. Default is "gpt-4-0125-preview".
+            - safely_request (bool): Turn default quota per day.
+            - collection_name (str): Name of log collection in DB.
         """
         open_api_key = os.environ.get("OPENAI_API_KEY")
         assert open_api_key, "OPENAI_API_KEY environment variable not set"
@@ -317,9 +326,10 @@ class ChatOpenAIVision:
             "Content-Type": "application/json",
             "Authorization": f"Bearer {open_api_key}",
         }
+        self.safely_request = safely_request
         self.client = OpenAI(api_key=open_api_key)
         self.llm_model = llm_model
-        self.mongo_logger = MongoDBLogger()
+        self.mongo_logger = MongoDBLogger(collection_name=collection_name)
 
     def encode_image(self, image_path):
         """
@@ -370,7 +380,9 @@ class ChatOpenAIVision:
                     ],
                 }
             ]
-            allow_request = self.mongo_logger.is_within_daily_quota()
+            allow_request = (
+                self.mongo_logger.is_within_daily_quota() if self.safely_request else True
+            )
             assert (
                 allow_request
             ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
@@ -402,7 +414,9 @@ class ChatOpenAIVision:
                 "messages": messages,
                 "max_tokens": max_tokens,
             }
-            allow_request = self.mongo_logger.is_within_daily_quota()
+            allow_request = (
+                self.mongo_logger.is_within_daily_quota() if self.safely_request else True
+            )
             assert (
                 allow_request
             ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
@@ -430,7 +444,6 @@ class ChatOpenAIVision:
             "completion_tokens": response.usage.completion_tokens,
             "prompt_tokens": response.usage.prompt_tokens,
             "total_tokens": response.usage.total_tokens,
-            "batch_api": True,
         }
 
         try:

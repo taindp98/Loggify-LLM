@@ -7,7 +7,7 @@ import zlib
 import copy
 import json
 import pandas as pd
-from loggify_llm.chat.utils import unit_cost, unit_cost_batch_api
+from loggify_llm.chat.utils import unit_price, supported_batch_api_llm_models
 
 load_dotenv()
 
@@ -45,11 +45,12 @@ class MongoDBLogger:
         client = pymongo.MongoClient(mongo_uri)
         self.db = client[db_name]
         self.collection = self.db[self.collection_name]
-        self.default_quota_by_day = 30  ## $30/day
-        print("🔥 Successfully Get Access Database")
-        print(f"💰 Your quota is ${self.default_quota_by_day} per day")
+        self.default_quota_by_day = 10  ## $30/day
+        print(
+            f"🔥 Successfully Get Access Collection `{self.collection_name}` in Database `{db_name}`"
+        )
+        print(f"💰 Your default quota is ${self.default_quota_by_day} per day")
         self.keys_need_compress = ["input", "output"]
-        self.use_batch_api = False
 
     def _compress_messages(self, messages):
         messages = json.dumps(messages)
@@ -141,7 +142,7 @@ class MongoDBLogger:
             fine_results.append(res)
         return fine_results
 
-    def estimate_cost(self, records: list):
+    def estimate_cost(self, records: list, batch_api: bool = False):
         """
         Estimates the total cost of using various language models based on token usage.
 
@@ -155,19 +156,17 @@ class MongoDBLogger:
                             about the usage of an LLM, including the model name (`llm_model`),
                             the number of prompt tokens used (`prompt_tokens`), and the number
                             of completion tokens generated (`completion_tokens`).
+            batch_api (bool): Batch API costs a half price of normal API
 
         Returns:
             float: The total estimated cost in dollars for using the LLMs across all records.
         """
 
         # Get a list of unique LLM models used in the records
-        supported_llm_models = list(unit_cost.keys())
-        supported_batch_api_llm_models = list(unit_cost_batch_api.keys())
+        supported_llm_models = list(unit_price.keys())
 
         # Initialize the total cost to zero
         total_cost = {item: 0 for item in supported_llm_models}
-        if self.use_batch_api:
-            total_cost.update({f"{item}/batch-api": 0 for item in supported_batch_api_llm_models})
 
         if len(records) > 0:
             # Convert the records list into a DataFrame for easier processing
@@ -175,59 +174,31 @@ class MongoDBLogger:
 
             # Loop through each LLM model to calculate the cost
             for llm_model in list(total_cost.keys()):
-                if "batch-api" in llm_model:
-                    original_llm_model = llm_model.split("/")[0]
-                    df_ = df_total[
-                        (df_total["llm_model"] == original_llm_model)
-                        & (df_total["batch_api"] == True)
-                    ]
+                df_ = df_total[df_total["llm_model"] == llm_model]
+                # Calculate the cost for prompt tokens
+                prompt_tokens_cost = (
+                    (df_["prompt_tokens"].sum() * unit_price[llm_model]["prompt_tokens"] * 1e-6)
+                    if len(df_) > 0
+                    else 0
+                )
 
-                    # Calculate the cost for prompt tokens
-                    prompt_tokens_cost = (
-                        (
-                            df_["prompt_tokens"].sum()
-                            * unit_cost_batch_api[original_llm_model]["prompt_tokens"]
-                            * 1e-6
-                        )
-                        if len(df_) > 0
-                        else 0
+                # Calculate the cost for completion tokens
+                completion_tokens_cost = (
+                    (
+                        df_["completion_tokens"].sum()
+                        * unit_price[llm_model]["completion_tokens"]
+                        * 1e-6
                     )
+                    if len(df_) > 0
+                    else 0
+                )
 
-                    # Calculate the cost for completion tokens
-                    completion_tokens_cost = (
-                        (
-                            df_["completion_tokens"].sum()
-                            * unit_cost_batch_api[original_llm_model]["completion_tokens"]
-                            * 1e-6
-                        )
-                        if len(df_) > 0
-                        else 0
-                    )
+                if llm_model in supported_batch_api_llm_models and batch_api:
+                    prompt_tokens_cost = prompt_tokens_cost / 2
+                    completion_tokens_cost = completion_tokens_cost / 2
 
-                    # Add the calculated costs to the total cost
-                    total_cost[llm_model] = prompt_tokens_cost + completion_tokens_cost
-                else:
-                    df_ = df_total[df_total["llm_model"] == llm_model]
-                    # Calculate the cost for prompt tokens
-                    prompt_tokens_cost = (
-                        (df_["prompt_tokens"].sum() * unit_cost[llm_model]["prompt_tokens"] * 1e-6)
-                        if len(df_) > 0
-                        else 0
-                    )
-
-                    # Calculate the cost for completion tokens
-                    completion_tokens_cost = (
-                        (
-                            df_["completion_tokens"].sum()
-                            * unit_cost[llm_model]["completion_tokens"]
-                            * 1e-6
-                        )
-                        if len(df_) > 0
-                        else 0
-                    )
-
-                    # Add the calculated costs to the total cost
-                    total_cost[llm_model] = prompt_tokens_cost + completion_tokens_cost
+                # Add the calculated costs to the total cost
+                total_cost[llm_model] = prompt_tokens_cost + completion_tokens_cost
         # Return the total estimated cost in dollars
         return total_cost
 
@@ -267,7 +238,7 @@ class MongoDBLogger:
             date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
         records = self.query_collection(query={"time": {"$gte": date}})
-        costs = sum(list(self.estimate_cost(records).values()))
+        costs = sum(list(self.estimate_cost(records=records, batch_api=False).values()))
         allow_request = costs < self.default_quota_by_day
         if not allow_request:
             print(f"📈 {date} costs ${costs}")
