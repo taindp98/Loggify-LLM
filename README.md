@@ -57,6 +57,12 @@ cd Loggify-LLM
 pip install -r requirements.txt
 ```
 
+alternative installation from a specific commit hash, use the following command:
+
+```bash
+pip install git+https://github.com/taindp98/Loggify-LLM.git@commit-hash
+```
+
 **Prerequisite**: Setting Up MongoDB Atlas
 
 Before proceeding with this repository, please ensure you have set up your own `MongoDB Atlas` cluster. This project requires access to a MongoDB database for data storage and retrieval. Follow these steps to create your MongoDB Atlas cluster:
