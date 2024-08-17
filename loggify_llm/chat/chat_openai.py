@@ -294,7 +294,7 @@ class ChatOpenAIVision:
     A class to interact with OpenAI's vision-enhanced language model for generating responses based on text and images.
 
     Attributes:
-        llm_model (str): The language model to use, default is "gpt-4-0125-preview".
+        llm_model (str): The language model to use, default is "gpt-4-vision-preview".
         headers (dict): The headers for the OpenAI API requests.
         client (OpenAI): The OpenAI client initialized with the API key.
 
@@ -308,7 +308,7 @@ class ChatOpenAIVision:
 
     def __init__(
         self,
-        llm_model: str = "gpt-4-0125-preview",
+        llm_model: str = "gpt-4-vision-preview",
         safely_request: bool = False,
         collection_name=None,
     ):
@@ -316,7 +316,7 @@ class ChatOpenAIVision:
         Initializes the ChatVision class with the specified language model.
 
         Args:
-            - llm_model (str): The language model to use. Default is "gpt-4-0125-preview".
+            - llm_model (str): The language model to use. Default is "gpt-4-vision-preview".
             - safely_request (bool): Turn default quota per day.
             - collection_name (str): Name of log collection in DB.
         """
@@ -439,7 +439,7 @@ class ChatOpenAIVision:
         result = {
             "request_id": response.id,
             "llm_model": self.llm_model,
-            "input": messages,
+            # "input": messages,    ## remove image from message to reduce storage memory
             "output": fine_output,
             "completion_tokens": response.usage.completion_tokens,
             "prompt_tokens": response.usage.prompt_tokens,
@@ -450,9 +450,7 @@ class ChatOpenAIVision:
             self.mongo_logger.insert_one(data=result)
         except Exception as e:
             print(f"👾 Warning: Failed to insert DB because: {e}")
-
         return result
-
 
 class DotDict(dict):
     """A dictionary with dot notation access."""

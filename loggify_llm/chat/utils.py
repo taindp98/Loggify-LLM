@@ -21,7 +21,7 @@ unit_price = {
         "prompt_tokens": 0.15,
         "completion_tokens": 0.6,
     },
-    "gpt-4-0125-preview": {
+    "gpt-4-vision-preview": {
         "prompt_tokens": 10,
         "completion_tokens": 30,
     },
