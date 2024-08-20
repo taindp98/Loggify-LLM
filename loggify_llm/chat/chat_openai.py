@@ -22,7 +22,7 @@ class ChatOpenAI:
     A class to interact with OpenAI's language model for generating chat responses.
 
     Attributes:
-        llm_model (str): The language model to use, default is "gpt-3.5-turbo-instruct".
+        llm_model (str): The language model to use, default is "gpt-4o-mini".
         client (OpenAI): The OpenAI client initialized with the API key.
 
     Methods:
@@ -32,7 +32,7 @@ class ChatOpenAI:
 
     def __init__(
         self,
-        llm_model: str = "gpt-3.5-turbo-instruct",
+        llm_model: str = "gpt-4o-mini",
         safely_request: bool = False,
         collection_name=None,
     ):
@@ -40,7 +40,7 @@ class ChatOpenAI:
         Initializes the ChatOpenAI class with the specified language model.
 
         Args:
-            llm_model (str): The language model to use. Default is "gpt-3.5-turbo-instruct".
+            llm_model (str): The language model to use. Default is "gpt-4o-mini".
             safely_request (bool): Turn default quota per day.
             collection_name (str): The name of log collection in DB.
         """
