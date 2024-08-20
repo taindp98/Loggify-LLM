@@ -20,7 +20,7 @@ requires-python = "~=3.9"
 # Add this section for runtime dependencies
 dependencies = [
     "requests==2.32.2",
-    "python-dotenv==1.0.1",
+    "python-dotenv",
     "openai==1.40.6",
     "pymongo",
 ]
