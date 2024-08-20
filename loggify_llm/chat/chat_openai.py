@@ -54,7 +54,12 @@ class ChatOpenAI:
             llm_model in supported_llm_models
         ), f"`llm_model` should be in {supported_llm_models}"
         self.llm_model = llm_model
-        self.mongo_logger = MongoDBLogger(collection_name=collection_name)
+        self.collection_name = collection_name
+        if self.collection_name:
+            self.mongo_logger = MongoDBLogger(collection_name=self.collection_name)
+        else:
+            self.mongo_logger = None
+        
         print(f"Initialize LLM model: {llm_model}")
 
     def request(
@@ -90,10 +95,11 @@ class ChatOpenAI:
                 "content": user_prompt,
             },
         ]
-        allow_request = self.mongo_logger.is_within_daily_quota() if self.safely_request else True
-        assert (
-            allow_request
-        ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
+        if self.mongo_logger:
+            allow_request = self.mongo_logger.is_within_daily_quota() if self.safely_request else True
+            assert (
+                allow_request
+            ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
 
         response = self.client.chat.completions.create(
             messages=messages,
@@ -119,11 +125,11 @@ class ChatOpenAI:
             "prompt_tokens": response.usage.prompt_tokens,
             "total_tokens": response.usage.total_tokens,
         }
-
-        try:
-            self.mongo_logger.insert_one(data=result)
-        except Exception as e:
-            print(f"👾 Warning: Failed to insert DB because: {e}")
+        if self.mongo_logger:
+            try:
+                self.mongo_logger.insert_one(data=result)
+            except Exception as e:
+                print(f"👾 Warning: Failed to insert DB because: {e}")
 
         return result
 
@@ -193,13 +199,6 @@ class ChatOpenAI:
         batch_job = self.client.batches.create(
             input_file_id=batch_file.id, endpoint="/v1/chat/completions", completion_window="24h"
         )
-
-        # Delete batch file
-        # os.remove(batch_fname)
-        # try:
-        #     self.mongo_logger.insert_many(data=tasks)
-        # except Exception as e:
-        #     print(f"👾 Warning: Failed to insert DB because: {e}")
 
         return batch_fname, batch_job
 
@@ -277,11 +276,13 @@ class ChatOpenAI:
                     "total_tokens": response.usage.total_tokens,
                 }
                 results.append(result)
-        try:
-            insert_results = copy.deepcopy(results)
-            self.mongo_logger.insert_many(data=insert_results)
-        except Exception as e:
-            print(f"👾 Warning: Failed to insert DB because: {e}")
+        
+        if self.mongo_logger:
+            try:
+                insert_results = copy.deepcopy(results)
+                self.mongo_logger.insert_many(data=insert_results)
+            except Exception as e:
+                print(f"👾 Warning: Failed to insert DB because: {e}")
         return results
 
     def batch_cancel(self, batch_job):
@@ -329,7 +330,11 @@ class ChatOpenAIVision:
         self.safely_request = safely_request
         self.client = OpenAI(api_key=open_api_key)
         self.llm_model = llm_model
-        self.mongo_logger = MongoDBLogger(collection_name=collection_name)
+        self.collection_name = collection_name
+        if self.collection_name:
+            self.mongo_logger = MongoDBLogger(collection_name=self.collection_name)
+        else:
+            self.mongo_logger = None
 
     def encode_image(self, image_path):
         """
@@ -380,12 +385,13 @@ class ChatOpenAIVision:
                     ],
                 }
             ]
-            allow_request = (
-                self.mongo_logger.is_within_daily_quota() if self.safely_request else True
-            )
-            assert (
-                allow_request
-            ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
+            if self.mongo_logger:
+                allow_request = (
+                    self.mongo_logger.is_within_daily_quota() if self.safely_request else True
+                )
+                assert (
+                    allow_request
+                ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
 
             response = self.client.chat.completions.create(
                 model=self.llm_model,
@@ -414,12 +420,13 @@ class ChatOpenAIVision:
                 "messages": messages,
                 "max_tokens": max_tokens,
             }
-            allow_request = (
-                self.mongo_logger.is_within_daily_quota() if self.safely_request else True
-            )
-            assert (
-                allow_request
-            ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
+            if self.mongo_logger:
+                allow_request = (
+                    self.mongo_logger.is_within_daily_quota() if self.safely_request else True
+                )
+                assert (
+                    allow_request
+                ), f"👾 Error: You have exceeded the daily quota of ${self.mongo_logger.default_quota_by_day}."
 
             response = requests.post(
                 url="https://api.openai.com/v1/chat/completions",
@@ -445,11 +452,11 @@ class ChatOpenAIVision:
             "prompt_tokens": response.usage.prompt_tokens,
             "total_tokens": response.usage.total_tokens,
         }
-
-        try:
-            self.mongo_logger.insert_one(data=result)
-        except Exception as e:
-            print(f"👾 Warning: Failed to insert DB because: {e}")
+        if self.mongo_logger:
+            try:
+                self.mongo_logger.insert_one(data=result)
+            except Exception as e:
+                print(f"👾 Warning: Failed to insert DB because: {e}")
         return result
 
 class DotDict(dict):
