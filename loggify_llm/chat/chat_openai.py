@@ -35,6 +35,7 @@ class ChatOpenAI:
         llm_model: str = "gpt-4o-mini",
         safely_request: bool = False,
         collection_name=None,
+        verbose: bool = False
     ):
         """
         Initializes the ChatOpenAI class with the specified language model.
@@ -49,6 +50,7 @@ class ChatOpenAI:
         assert open_api_key, "OPENAI_API_KEY environment variable not set"
         self.client = OpenAI(api_key=open_api_key)
         self.safely_request = safely_request
+        self.verbose = verbose
         supported_llm_models = list(unit_price.keys())
         assert (
             llm_model in supported_llm_models
@@ -113,7 +115,8 @@ class ChatOpenAI:
         try:
             fine_output = json.loads(raw_output)
         except Exception as e:
-            print(f"👾 Warning: Failed to refine the output of LLM because: {e}")
+            if self.verbose:
+                print(f"👾 Warning: Failed to refine the output of LLM because: {e}")
             fine_output = raw_output
 
         result = {
@@ -129,7 +132,8 @@ class ChatOpenAI:
             try:
                 self.mongo_logger.insert_one(data=result)
             except Exception as e:
-                print(f"👾 Warning: Failed to insert DB because: {e}")
+                if self.verbose:
+                    print(f"👾 Warning: Failed to insert DB because: {e}")
 
         return result
 
@@ -263,7 +267,8 @@ class ChatOpenAI:
                 try:
                     fine_output = json.loads(raw_output)
                 except Exception as e:
-                    print(f"👾 Warning: Failed to refine the output of LLM because: {e}")
+                    if self.verbose:
+                        print(f"👾 Warning: Failed to refine the output of LLM because: {e}")
                     fine_output = raw_output
 
                 result = {
@@ -282,7 +287,8 @@ class ChatOpenAI:
                 insert_results = copy.deepcopy(results)
                 self.mongo_logger.insert_many(data=insert_results)
             except Exception as e:
-                print(f"👾 Warning: Failed to insert DB because: {e}")
+                if self.verbose:
+                    print(f"👾 Warning: Failed to insert DB because: {e}")
         return results
 
     def batch_cancel(self, batch_job):
