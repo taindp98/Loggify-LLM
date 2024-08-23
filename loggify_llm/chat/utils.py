@@ -17,14 +17,18 @@ unit_price = {
         "prompt_tokens": 0.15,
         "completion_tokens": 0.6,
     },
-    "gpt-4o-mini-2024-07-18": {
-        "prompt_tokens": 0.15,
-        "completion_tokens": 0.6,
+    "gpt-4o-2024-08-06": {
+        "prompt_tokens": 2.5,
+        "completion_tokens": 10,
     },
     "gpt-4-vision-preview": {
         "prompt_tokens": 10,
         "completion_tokens": 30,
     },
+    "gpt-4o": {
+        "prompt_tokens": 5,
+        "completion_tokens": 15,
+    }
 }
 
 supported_batch_api_llm_models = [
