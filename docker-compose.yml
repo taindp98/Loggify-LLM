@@ -1,0 +1,13 @@
+version: '3.5'
+
+services:
+  mongodb:
+    container_name: mongodb
+    image: mongo:jammy
+    ports:
+      - '27017:27017'
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/mongodb:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root  # Root user username
+      MONGO_INITDB_ROOT_PASSWORD: root  # Root user password

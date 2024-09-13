@@ -63,38 +63,13 @@ alternative installation from a specific commit hash, use the following command:
 pip install git+https://github.com/taindp98/Loggify-LLM.git@commit-hash
 ```
 
-**Prerequisite**: Setting Up MongoDB Atlas
+**Prerequisite**: Setting Up MongoDB
 
-Before proceeding with this repository, please ensure you have set up your own `MongoDB Atlas` cluster. This project requires access to a MongoDB database for data storage and retrieval. Follow these steps to create your MongoDB Atlas cluster:
+```bash
+docker compose up
+```
 
-1. **Sign Up/Log In to MongoDB Atlas:**
-   - Go to the [MongoDB Atlas website](https://www.mongodb.com/cloud/atlas).
-   - Sign up for a new account or log in to your existing account.
-
-2. **Create a New Cluster:**
-   - Click on "Build a Cluster" and select the free tier or any plan that suits your needs.
-   - Choose your preferred cloud provider and region.
-
-3. **Configure Your Cluster:**
-   - Follow the prompts to configure your cluster settings.
-   - Once configured, click "Create Cluster."
-
-4. **Add Your IP Address:**
-   - In the Security section, click on "Network Access" and add your IP address to the whitelist.
-
-5. **Create a Database User:**
-   - In the Security section, click on "Database Access" and create a new database user with appropriate permissions.
-
-6. **Connect to Your Cluster:**
-   - Once your cluster is ready, click on "Connect" and choose a connection method.
-   - Copy the connection string provided and replace `<username>`, `<password>`, and `<your-cluster-url>` with your database user credentials and cluster URL.
-
-7. **Update Configuration in This Repository:**
-   - Replace the placeholder connection string in the project's configuration file with your MongoDB Atlas connection string.
-
-By completing these steps, you'll ensure that your MongoDB Atlas cluster is ready for use with this project. If you need further assistance, please refer to the [MongoDB Atlas documentation](https://docs.atlas.mongodb.com/).
-
-Create the `.env` file containing `OPENAI_API_KEY` the connection to the `MongoDB Atlas`
+Create the `.env` file containing `OPENAI_API_KEY` the connection to the `MongoDB`
 
 ```
 ## OPENAI
